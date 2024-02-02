@@ -1,0 +1,11 @@
+41 c4 17 8f Supply Temperature (Celcius)
+41 c4 17 da Return Temperature (Celcius)
+41 c4 35 61 Domestic Hot Water Temperature (Celcius)
+41 c4 74 b9 Flow (liter/min)
+  
+41 c6 15 04 Setpoint Water (Celcius)
+41 c6 15 0f Setpoint Room (Celcius)
+41 c6 15 11 Room Temperature (Celcius)
+41 c6 66 01 Outside Temperature (Celcius)
+
+42 87 82 47 xx xx Update Setpoint Room (u16) (Example 20.5 degrees is 0xCD)

@@ -5,7 +5,7 @@ This project describes all known Modbus functions and registers for the Atlantic
 It also describes how to make a connection to the Modbus interface. Including wiring and connection settings.
 
 ## Protocol
-The Atlantic Loria Heat Pump uses the Modbus RTU protocol through a rs485 serial interface. All public functions 0x1, 0x2, 0x3 and 0x4 return empty responses. Only proprietary function x41 is implemented. (Keep in mind most Modbus tools don't support functions other than 0x1 through 0x4)
+The Atlantic Loria Heat Pump uses the Modbus RTU protocol through a rs485 serial interface. All public functions 0x1, 0x2, 0x3 and 0x4 return empty responses. Only proprietary function x41 and x42 are implemented. (Keep in mind most Modbus tools don't support functions other than 0x1 through 0x4)
 
 Registers are divided into two files. A file with mapped registers and a file with unmapped registers. Please update accordingly.
 - mapped.txt

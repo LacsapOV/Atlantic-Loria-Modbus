@@ -12,7 +12,24 @@ Registers are divided into two files. A file with mapped registers and a file wi
 - unmapped.txt
 
 ## Wiring
-...
+<img src="https://github.com/LacsapOV/Atlantic-Loria-Modbus/blob/main/assets/molex_male.jpg?raw=true" width="250">
+The Male Molex 3x2 connector is located underneath the expansion vessel. (See image above)
+
+---
+
+<img src="https://github.com/LacsapOV/Atlantic-Loria-Modbus/blob/main/assets/molex_female.jpg?raw=true" width="250">
+You'll need a Female Molex 3x2 connector. (See image above)
+
+---
+
+<img src="https://github.com/LacsapOV/Atlantic-Loria-Modbus/blob/main/assets/molex_wiring.jpg?raw=true" width="250">
+
+- 1: 24v DC
+- 2: 
+- 3: A (Data)
+- 4: GND
+- 5: 
+- 6: B (Data)
 
 ## Connection settings
 - Baudrate: 19.200

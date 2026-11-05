@@ -1,11 +1,37 @@
-41 c4 17 8f Supply Temperature (Celcius)
-41 c4 17 da Return Temperature (Celcius)
-41 c4 35 61 Domestic Hot Water Temperature (Celcius)
-41 c4 74 b9 Flow (liter/min)
-  
-41 c6 15 04 Setpoint Water (Celcius)
-41 c6 15 0f Setpoint Room (Celcius)
-41 c6 15 11 Room Temperature (Celcius)
-41 c6 66 01 Outside Temperature (Celcius)
+# Atlantic Loria / Techneco Loria 6008 (R410A) - observed proprietary Modbus codes
+# 41 = proprietary read, followed by a 3-byte identifier.
+# 42 = proprietary write; listed only for backwards compatibility (DO NOT use for discovery scans).
+# Values returned by 41: 2 data bytes. Common temperature values = signed big-endian / 10.
+# CONFIRMED/ORIGINAL = original GitHub mapping verified against display.
+# OBSERVED = reproducible correlation across recorded CH, DHW, idle and transition phases.
+# PROVISIONAL = strongly suggested by data, but scaling/reset or exact semantics not manufacturer-verified.
+# NOTE: Display info 13 operating codes DO NOT equal the codes in C4 0F C2.
+# NOTE: Display info 30/50 refers to energy consumed (month/year), NOT proven identical to produced heat counters below.
 
+# Existing register mappings
+41 c4 17 8f Supply Temperature (deg C, signed u16 BE / 10)
+41 c4 17 da Return Temperature (deg C, signed u16 BE / 10)
+41 c4 35 61 Domestic Hot Water Temperature (deg C, signed u16 BE / 10; sensor located low in tank)
+41 c4 74 b9 Flow (litres/min, unsigned u16 BE / 10; validated against display)
+41 c6 15 04 Setpoint Water / CH demand temperature (deg C, signed u16 BE / 10)
+41 c6 15 0f Setpoint Room (deg C, signed u16 BE / 10)
+41 c6 15 11 Room Temperature (deg C, signed u16 BE / 10)
+41 c6 66 01 Outside Temperature (deg C, signed u16 BE / 10)
+
+# Additional mappings from measurements in November 2026
+41 c4 0f c2 Operating phase [OBSERVED] u16: 1=idle, 2=CH preparation, 3=CH active, 6=DHW preparation, 7=DHW active. NOT the same codes as display info 13.
+41 c4 30 fd Combined status [OBSERVED]: byte0=stage (1=idle/preparation, 2=startup, 3=active), byte1=operating phase (matches C4 0F C2). Other values unknown.
+41 c4 35 6e Active supply water temperature setpoint [OBSERVED] (signed u16 BE / 10 deg C); 0 at idle, CH/DHW target while active.
+41 c4 35 f7 Outside temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); matches C6 66 01 within 0.1 deg C.
+41 c4 3f 57 Seconds counter [OBSERVED] (unsigned u16 BE, +1 per second, wrap/reset behaviour unknown; NOT proven compressor runtime).
+41 c4 4d 2a Supply temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); follows C4 17 8F, sensor identity unknown.
+41 c4 4d 43 Supply temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); follows C4 17 8F, sensor identity unknown.
+41 c4 77 76 Controller calendar year [CONFIRMED] (unsigned u16 BE): 0x07EA=2026; before correction 0x07E2=2018.
+41 c4 77 79 Controller calendar month/day [CONFIRMED]: byte0=month (1-12), byte1=day (1-31); 0B 05=Nov 5.
+41 c4 77 86 Controller clock time [CONFIRMED]: byte0=hour (0-23), byte1=minute (0-59); 12 35=18:53.
+41 c4 78 2c Controller weekday [OBSERVED] (u16 BE, 1=Monday through 7=Sunday; observed 2=Tuesday, 4=Thursday).
+41 c6 72 4f CH heat-energy accumulator [PROVISIONAL] (u16 BE, probably 0.1 kWh/count; rises during CH, not DHW; reset period not verified).
+41 c6 72 bf DHW heat-energy accumulator [PROVISIONAL] (u16 BE, probably 0.1 kWh/count; rises during DHW, not CH; reset period not verified).
+
+# Existing WRITE mapping (not used in the read-only scans)
 42 87 82 47 xx xx Update Setpoint Room (u16) (Example 20.5 degrees is 0xCD)

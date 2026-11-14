@@ -1,47 +1,39 @@
-# Atlantic Loria - 0x41 registers still unmapped (November 2026)
-# One machine-readable command per line: 41 xx xx xx.
-# Comments start with #; loria_scan.py skips comments.
-# Unmapped includes candidates; descriptions below are HYPOTHESES, not confirmed mappings.
-# Moved 13 observed/provisional registers to mapped.txt; original 8 known + 13 = 21 read registers.
-# Manufacturer-specific 0x41 read only. Never use 0x42 write for automated scans.
-
-# Possible power/state-dependent value; not yet decoded.
+# Atlantic Loria - still-unmapped 0x41 registers, updated 2026-11-14.
+# One command per data line: 41 aa bb cc. Comments start with #.
+# Definitions newly confirmed on 6008 and/or by ZAPPEL-non-ai on 6004 have been moved to mapped.txt.
+# Candidate interpretations are notes, NOT proof. Full notes: LORIA_MAPPING_NOTES.md.
+# Discovery of thousands of 07/87 byte windows is documented separately; do not poll them here.
+# [6008 OBSERVED] Changes 264->268->264 with parameter 30 (0.3/0.4/0.3), 264->266->264 with parameter 31 (3.5/4.0/3.5); purpose unknown.
+41 c1 77 1f
 41 c3 00 ab
 41 c3 36 38
 41 c3 3f 64
 41 c3 74 49
-41 c4 00 f1
-41 c4 03 02
 41 c4 03 31
-# Candidate refrigerant/evaporator sensor: signed raw values ~-5 to -9 deg C IF divided by 10; persists in idle, UNVERIFIED.
+# [6004 CANDIDATE] Unconnected/unused temperature sensor: near -35 to -39 C.
 41 c4 03 57
-41 c4 03 58
-# Candidate compressor/fan speed or temperature. First response byte ~47-54 in CH, ~67-70 in DHW, zero in sustained idle; unit unknown.
-41 c4 0f 0e
 41 c4 11 10
 41 c4 12 e3
-# On/off-associated output (0x5400 when running, 0x0000 in idle); component unknown.
-41 c4 14 26
-# Candidate cold-side reading: signed raw values ~-6 to -8 deg C IF divided by 10, UNVERIFIED.
+# [6004 CANDIDATE] Unconnected/unused temperature sensor: near -35 to -39 C.
 41 c4 17 2a
 41 c4 17 4c
-# DHW-related value: observed 0x6400 (=100 in first byte) during high-output DHW; meaning unknown.
+# [6004 CANDIDATE] DHW pump/valve output: 0x6400 during DHW, zero otherwise.
 41 c4 1d b6
-41 c4 1e 79
+# [6004 OBSERVED] 0x0F00 during DHW, 0 otherwise; function unknown.
 41 c4 28 29
+# [6004 OBSERVED] 0x0F00 during DHW, 0 otherwise; function unknown.
 41 c4 28 40
 41 c4 2f 4e
 41 c4 30 ce
 41 c4 30 f2
 41 c4 35 07
-# Candidate cold-side reading: signed raw values ~-6 to -9 deg C IF divided by 10, UNVERIFIED.
+# [6004 CANDIDATE] Unconnected/unused temperature sensor: near -35 to -39 C.
 41 c4 35 08
 41 c4 35 52
 41 c4 35 5d
-# Activity-related status: 0xFF00 in active/prestop phases, 0x0000 in sustained idle; compressor/pump identity unknown.
+# Outside-related dynamic temperature candidate; previous 0.1 C mirror claim NOT supported consistently (differences up to about 1 C in newer tests).
+41 c4 35 f7
 41 c4 36 04
-# Candidate compressor/fan speed or temperature. First response byte ~47-54 in CH, ~67-70 in DHW, zero in sustained idle; tracks C4 0F 0E closely.
-41 c4 36 f4
 41 c4 3a 08
 41 c4 3a 34
 41 c4 3a f8
@@ -54,11 +46,8 @@
 41 c4 4e bf
 41 c4 4e d6
 41 c4 4e d9
-# Constant observed value 570 (possibly 57.0 deg C setting); NOT a confirmed temperature sensor.
 41 c4 50 ae
-# Water/pipe-related temperature-like value (raw / 10): follows return roughly in active modes, but differs greatly in idle; NOT confirmed return mirror.
-41 c4 74 8a
-41 c4 74 b6
+# [6004 CANDIDATE, NOT VERIFIED] 55 observed; previous suggestion DHW setpoint likely ambiguous in light of 05/C5 metadata.
 41 c5 00 00
 41 c5 05 6d
 41 c5 05 ae
@@ -72,12 +61,14 @@
 41 c5 0c c1
 41 c5 12 31
 41 c5 12 35
+# [6008 OBSERVED] Two data bytes 0x5A 0x14; possible parameter limits 90/20, but actual displayed P32 maximum is 55 C.
 41 c5 12 36
 41 c5 12 37
 41 c5 12 38
 41 c5 12 75
 41 c5 12 7a
 41 c5 12 85
+# [6004 CANDIDATE, NOT VERIFIED] 40 observed; previous suggestion DHW setpoint likely ambiguous in light of 05/C5 metadata.
 41 c5 13 30
 41 c5 13 31
 41 c5 13 32
@@ -115,22 +106,23 @@
 41 c6 5a c2
 41 c6 5a cd
 41 c6 5a f1
-# Changes during CH; unclear whether demand/power/control signal.
+# [6004 CANDIDATE] CH demand/modulation: 0 in DHW/defrost, correlates with heat output.
 41 c6 72 29
 41 c6 72 40
 41 c6 72 73
 41 c6 72 7c
 41 c6 72 83
 41 c6 72 8c
-# Changes during DHW; unclear whether demand/power/control signal.
 41 c6 72 b0
+# [6004 CANDIDATE] Transition routine: value 83 during about 10 min after parameter change.
 41 c6 72 d6
+# [6004 CANDIDATE] Transition-related value; meaning unknown.
 41 c6 72 d9
+# [6004 CANDIDATE] Event counter: +1 at defrost; also increments following parameter changes.
 41 c6 72 e5
 41 c6 72 ea
 41 c6 74 13
 41 c6 74 1c
-# DHW-dependent value: 0 during CH and idle, observed ~44-56 during DHW; NOT established as discharge-gas temperature.
 41 c6 74 20
 41 c6 74 2f
 41 c6 74 46

@@ -1,37 +1,59 @@
-# Atlantic Loria / Techneco Loria 6008 (R410A) - observed proprietary Modbus codes
-# 41 = proprietary read, followed by a 3-byte identifier.
-# 42 = proprietary write; listed only for backwards compatibility (DO NOT use for discovery scans).
-# Values returned by 41: 2 data bytes. Common temperature values = signed big-endian / 10.
-# CONFIRMED/ORIGINAL = original GitHub mapping verified against display.
-# OBSERVED = reproducible correlation across recorded CH, DHW, idle and transition phases.
-# PROVISIONAL = strongly suggested by data, but scaling/reset or exact semantics not manufacturer-verified.
-# NOTE: Display info 13 operating codes DO NOT equal the codes in C4 0F C2.
-# NOTE: Display info 30/50 refers to energy consumed (month/year), NOT proven identical to produced heat counters below.
+# Atlantic Loria / Techneco Loria Duo - proprietary Modbus register map
+# Updated 2026-11-14. Tested primarily on Duo 6008 R410A; community data on Duo 6004 R410A.
+# One register per line: 41 aa bb cc Meaning; one legacy documented 42 write at the end.
+# The proprietary function 0x41 reads a 3-byte identifier (NOT normal FC03 holding registers).
+# IMPORTANT: data width is address-dependent: 05 often returns 1 byte, C1/C4/C6 often 2.
+# For two-byte temperatures, signed big-endian / 10 unless the line specifies otherwise.
+# Evidence labels: [6008 TESTED] = setting/display/A-B-A test on the 6008;
+# [6008 OBSERVED] = repeatable correlation, exact sensor identity may still be uncertain;
+# [6004 TESTED] = setting/display A-B-A test reported by ZAPPEL-non-ai on 6004;
+# [6004 CORRELATED] = community evidence on 6004, not independently proven on 6008;
+# [PROVISIONAL] = possible interpretation, do not treat as a manufacturer specification.
+# More nuance, contradictory findings, all raw addresses: LORIA_MAPPING_NOTES.md.
+# Community: https://github.com/LacsapOV/Atlantic-Loria-Modbus/issues/1
+# No 0x42 write to unknown addresses. Reading data != permission to write it.
 
-# Existing register mappings
-41 c4 17 8f Supply Temperature (deg C, signed u16 BE / 10)
-41 c4 17 da Return Temperature (deg C, signed u16 BE / 10)
-41 c4 35 61 Domestic Hot Water Temperature (deg C, signed u16 BE / 10; sensor located low in tank)
-41 c4 74 b9 Flow (litres/min, unsigned u16 BE / 10; validated against display)
-41 c6 15 04 Setpoint Water / CH demand temperature (deg C, signed u16 BE / 10)
-41 c6 15 0f Setpoint Room (deg C, signed u16 BE / 10)
-41 c6 15 11 Room Temperature (deg C, signed u16 BE / 10)
-41 c6 66 01 Outside Temperature (deg C, signed u16 BE / 10)
+# Original sensors and room settings
+41 c4 17 8f Supply water temperature (deg C; signed BE u16 / 10) [ORIGINAL]
+41 c4 17 da Return water temperature (deg C; signed BE u16 / 10) [ORIGINAL]
+41 c4 35 61 DHW tank sensor near bottom (deg C; signed BE u16 / 10) [ORIGINAL]
+41 c4 74 b9 Heating-water flow (litres/min; unsigned BE u16 / 10) [ORIGINAL; 6008 TESTED]
+41 c6 15 0f Requested room temperature (deg C; signed BE u16 / 10) [ORIGINAL]
+41 c6 15 11 Measured room temperature (deg C; signed BE u16 / 10) [ORIGINAL]
+41 c6 66 01 Outside temperature (deg C; signed BE u16 / 10) [ORIGINAL]
 
-# Additional mappings from measurements in November 2026
-41 c4 0f c2 Operating phase [OBSERVED] u16: 1=idle, 2=CH preparation, 3=CH active, 6=DHW preparation, 7=DHW active. NOT the same codes as display info 13.
-41 c4 30 fd Combined status [OBSERVED]: byte0=stage (1=idle/preparation, 2=startup, 3=active), byte1=operating phase (matches C4 0F C2). Other values unknown.
-41 c4 35 6e Active supply water temperature setpoint [OBSERVED] (signed u16 BE / 10 deg C); 0 at idle, CH/DHW target while active.
-41 c4 35 f7 Outside temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); matches C6 66 01 within 0.1 deg C.
-41 c4 3f 57 Seconds counter [OBSERVED] (unsigned u16 BE, +1 per second, wrap/reset behaviour unknown; NOT proven compressor runtime).
-41 c4 4d 2a Supply temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); follows C4 17 8F, sensor identity unknown.
-41 c4 4d 43 Supply temperature mirror [OBSERVED] (signed u16 BE / 10 deg C); follows C4 17 8F, sensor identity unknown.
-41 c4 77 76 Controller calendar year [CONFIRMED] (unsigned u16 BE): 0x07EA=2026; before correction 0x07E2=2018.
-41 c4 77 79 Controller calendar month/day [CONFIRMED]: byte0=month (1-12), byte1=day (1-31); 0B 05=Nov 5.
-41 c4 77 86 Controller clock time [CONFIRMED]: byte0=hour (0-23), byte1=minute (0-59); 12 35=18:53.
-41 c4 78 2c Controller weekday [OBSERVED] (u16 BE, 1=Monday through 7=Sunday; observed 2=Tuesday, 4=Thursday).
-41 c6 72 4f CH heat-energy accumulator [PROVISIONAL] (u16 BE, probably 0.1 kWh/count; rises during CH, not DHW; reset period not verified).
-41 c6 72 bf DHW heat-energy accumulator [PROVISIONAL] (u16 BE, probably 0.1 kWh/count; rises during DHW, not CH; reset period not verified).
+# Setpoints and weather-compensated CH control
+41 c1 74 ec DHW setpoint (deg C; unsigned BE u16 / 10); verified 46->47->46 and 46->50->46 [6008 TESTED]
+41 c4 35 6e Active calculated supply-water target (deg C; signed BE u16 / 10); CH responds to room setpoint, slope and foot; DHW about DHW target +5 K [6008 TESTED]
+41 c6 15 04 Calculated water/CH demand target (deg C; signed BE u16 / 10); closely tracks C4 35 6E in CH [ORIGINAL; 6008 TESTED]
+41 c1 0f ab Active supply-water target integer part in first response byte (deg C; second byte 00); CH/DHW changes [6008 OBSERVED]
+41 05 12 36 Installer parameter 32: CH maximum supply-temperature setting (deg C; ONE data byte); follows display setting changes [6008 TESTED]
 
-# Existing WRITE mapping (not used in the read-only scans)
-42 87 82 47 xx xx Update Setpoint Room (u16) (Example 20.5 degrees is 0xCD)
+# Operating state and time
+41 c4 0f c2 Operating phase (BE u16): 1=idle, 2=CH preparation, 3=CH active, 6=DHW preparation, 7=DHW active [6008 OBSERVED]
+41 c4 30 fd Combined state: response byte0=stage (1=idle/prep, 2=startup, 3=active); byte1=phase matching C4 0F C2 [6008 OBSERVED]
+41 c4 3f 57 Seconds-like counter (BE u16, increments about once/sec; reset/wrap and function unknown) [6008 OBSERVED]
+41 c4 77 76 Controller year (BE u16, e.g. 0x07EA=2026) [6008 TESTED]
+41 c4 77 79 Controller calendar month/day (byte0=month, byte1=day) [6008 TESTED]
+41 c4 77 86 Controller clock hour/minute (byte0=hour, byte1=minute) [6008 TESTED]
+41 c4 78 2c Controller weekday (BE u16, observed 1=Monday..7=Sunday) [6008 OBSERVED]
+
+# Energy counters and mirror temperatures
+41 c6 72 4f Daily CH produced heat energy (BE u16 * 0.1 kWh; resets at controller midnight; excludes DHW/defrost) [6004 CORRELATED; 6008 OBSERVED]
+41 c6 72 bf Daily DHW produced heat energy (BE u16 * 0.1 kWh; resets at controller midnight) [6004 CORRELATED; 6008 OBSERVED]
+41 c4 4d 2a Supply-temperature-like mirror (deg C; BE u16 / 10); tracks C4 17 8F, identity not certain [6008 OBSERVED]
+41 c4 4d 43 Supply-temperature-like mirror (deg C; BE u16 / 10); tracks C4 17 8F, identity not certain [6008 OBSERVED]
+
+# Community findings on Loria Duo 6004 R410A (GitHub issue #1)
+41 c4 14 26 Circulation-pump speed setting (response byte0 in percent); display parameter 70: 1=50%, 2=67%, 3=84%, 4=100% [6004 TESTED]
+41 c4 0f 0e Raw water-flow indicator (response byte0 * approximately 0.366 = litres/min); compare C4 74 B9 [6004 CORRELATED; 6008 CORRELATED]
+41 c4 36 f4 Second raw water-flow indicator (response byte0 * approximately 0.366 = litres/min); compare C4 74 B9 [6004 CORRELATED; 6008 CORRELATED]
+41 c4 74 8a Likely refrigerant liquid-line / plate-heat-exchanger temperature (signed BE u16 / 10 deg C); low during defrost; exact sensor position provisional [6004 CORRELATED; PROVISIONAL]
+41 c4 74 b6 Outdoor-unit air-temperature reading (signed BE u16 / 10 deg C, about 1 K steps); tracks C6 66 01 within about 1 K [6004 CORRELATED]
+41 c4 00 f1 Raw NTC/ADC-like input, probably outdoor temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
+41 c4 03 58 Raw NTC/ADC-like input, probably supply temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
+41 c4 1e 79 Raw NTC/ADC-like input, probably return temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
+41 c4 03 02 Raw NTC/ADC-like input, probably DHW temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
+
+# Known legacy write code (DO NOT use in read-only scans)
+42 87 82 47 xx xx Update Setpoint Room (u16) (example: 20.5 deg C encoded as 0x00CD); existing documented command; no newly inferred write mappings

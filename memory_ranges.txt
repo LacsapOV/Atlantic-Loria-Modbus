@@ -1,0 +1,7 @@
+# Alleen werkelijk aaneengesloten, in brondata voorkomende 07/87-adressen.
+# 07 (1-byte) en 87 (overlappende 2-byte) lijken geheugenvensters; geen bewezen machinecode.
+# Bekend uitleesregister 41 87 82 47 staat onafhankelijk in mapped.txt.
+41 07 00 00 .. 41 07 87 ff ; aantal=34816
+41 07 f1 00 .. 41 07 ff ff ; aantal=3840
+41 87 00 00 .. 41 87 87 ff ; aantal=34816
+41 87 f1 00 .. 41 87 ff ff ; aantal=3840

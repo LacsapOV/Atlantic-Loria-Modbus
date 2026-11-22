@@ -55,5 +55,9 @@
 41 c4 1e 79 Raw NTC/ADC-like input, probably return temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
 41 c4 03 02 Raw NTC/ADC-like input, probably DHW temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
 
+
+# 87 byte-window with an independently confirmed room-setpoint interpretation
+41 87 82 47 Separate requested-room-temperature readback (BE u16 / 10); read returns 200->210->200 during confirmed 20->21->20 A-B-A trial [6008 TESTED]; may be a memory alias; 0x42 write remains the only previously verified write
+
 # Known legacy write code (DO NOT use in read-only scans)
 42 87 82 47 xx xx Update Setpoint Room (u16) (example: 20.5 deg C encoded as 0x00CD); existing documented command; no newly inferred write mappings

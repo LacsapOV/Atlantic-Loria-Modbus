@@ -1,8 +1,8 @@
 # Atlantic Loria / Techneco Loria Duo - proprietary Modbus register map
-# Updated 2026-11-14. Tested primarily on Duo 6008 R410A; community data on Duo 6004 R410A.
-# One register per line: 41 aa bb cc Meaning; one legacy documented 42 write at the end.
+# Updated 2026-11-23. Tested primarily on Duo 6008 R410A; community data on Duo 6004 R410A.
+# One register per line: 41 aa bb cc Meaning; 42 xx lines are documented write commands.
 # The proprietary function 0x41 reads a 3-byte identifier (NOT normal FC03 holding registers).
-# IMPORTANT: data width is address-dependent: 05 often returns 1 byte, C1/C4/C6 often 2.
+# IMPORTANT: data width is address-dependent: 05 often returns 1 byte, C1/C4/C6/C7 often 2; 07 and 87 can also be 1 or 2 bytes.
 # For two-byte temperatures, signed big-endian / 10 unless the line specifies otherwise.
 # Evidence labels: [6008 TESTED] = setting/display/A-B-A test on the 6008;
 # [6008 OBSERVED] = repeatable correlation, exact sensor identity may still be uncertain;
@@ -28,6 +28,12 @@
 41 c6 15 04 Calculated water/CH demand target (deg C; signed BE u16 / 10); closely tracks C4 35 6E in CH [ORIGINAL; 6008 TESTED]
 41 c1 0f ab Active supply-water target integer part in first response byte (deg C; second byte 00); CH/DHW changes [6008 OBSERVED]
 41 05 12 36 Installer parameter 32: CH maximum supply-temperature setting (deg C; ONE data byte); follows display setting changes [6008 TESTED]
+41 07 f3 eb Installer parameter 31: CH weather-curve shift (s8 x 0.1 K); RAM value observed 0.5 -> 0 -> 1.1 -> -0.1; persistent copy 87 825C [6008 TESTED]
+41 07 f3 ea Installer parameter 30: CH weather-curve slope (u8 x 0.1); RAM value observed 0.6 -> 0.5; persistent write address 87 825B confirmed 0.5 -> 0.6 [6008 TESTED]
+41 07 f3 f4 Installer parameter 33: room-sensor influence (percent, u8); RAM value observed 20 -> 0; persistent copy 87 8265 [6008 TESTED]
+41 07 f3 4b Installer parameter 70: pump speed (percent, u8); RAM value observed 100 -> 84 -> 67 -> 100 with parameter 70; persistent copies 87 81BB/81BC/81BF/81C0 [6008 TESTED]
+41 07 f3 fa Installer parameter 72 (provisional value/name; u8); value 18 observed [6008 OBSERVED; PROVISIONAL]
+41 07 fc 70 Controller date (3 bytes: day, month with January=0, year little-endian u16); RAM dump example 17 0A EA 07 = 23 November 2026 [6008 OBSERVED]
 
 # Operating state and time
 41 c4 0f c2 Operating phase (BE u16): 1=idle, 2=CH preparation, 3=CH active, 6=DHW preparation, 7=DHW active [6008 OBSERVED]
@@ -37,10 +43,17 @@
 41 c4 77 79 Controller calendar month/day (byte0=month, byte1=day) [6008 TESTED]
 41 c4 77 86 Controller clock hour/minute (byte0=hour, byte1=minute) [6008 TESTED]
 41 c4 78 2c Controller weekday (BE u16, observed 1=Monday..7=Sunday) [6008 OBSERVED]
+41 c4 3f 58 Clock lower/upper 16-bit Unix-time data: low word C4 3F 57, high word C4 3F 58; combine u32 = C43F58 << 16 + C43F57 [6008 TESTED]
 
-# Energy counters and mirror temperatures
+# Energy counters, power and mirror temperatures
 41 c6 72 4f Daily CH produced heat energy (BE u16 * 0.1 kWh; resets at controller midnight; excludes DHW/defrost) [6004 CORRELATED; 6008 OBSERVED]
 41 c6 72 bf Daily DHW produced heat energy (BE u16 * 0.1 kWh; resets at controller midnight) [6004 CORRELATED; 6008 OBSERVED]
+41 c6 72 29 CH delivered thermal power according to controller (u16 / 26.8 approximately kW); correlated with flow x temperature rise; 0 during DHW/defrost [6008 OBSERVED]
+41 c6 72 8c DHW delivered thermal power according to controller (u16 / 27.5 approximately kW); present only during DHW [6008 OBSERVED]
+41 c6 72 d6 Electric backup-heating active indicator (u16; 83 approximately 3 kW, 0 off); high-value indication needs testing before use [6008 OBSERVED]
+41 c6 72 d9 Electric backup-heating daily energy fractional hundredths (u16; 0-99) [6008 OBSERVED]
+41 c6 72 e5 Electric backup-heating daily whole-energy units (u16 * 0.1 kWh) [6008 OBSERVED]
+41 c6 72 b0 DHW-only changing value (u16, 0-98); purpose unconfirmed [6008 OBSERVED; PROVISIONAL]
 41 c4 4d 2a Supply-temperature-like mirror (deg C; BE u16 / 10); tracks C4 17 8F, identity not certain [6008 OBSERVED]
 41 c4 4d 43 Supply-temperature-like mirror (deg C; BE u16 / 10); tracks C4 17 8F, identity not certain [6008 OBSERVED]
 
@@ -54,10 +67,43 @@
 41 c4 03 58 Raw NTC/ADC-like input, probably supply temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
 41 c4 1e 79 Raw NTC/ADC-like input, probably return temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
 41 c4 03 02 Raw NTC/ADC-like input, probably DHW temperature-related; conversion/sensor assignment unproven [6004 CORRELATED; PROVISIONAL]
+41 c4 1d b6 Value active only during DHW (byte0 0 in CH, 100 in DHW); possible pump/valve state [6004 OBSERVED; PROVISIONAL]
+41 c4 28 29 DHW-only value (u16: 0 or 3840) [6004 OBSERVED; PROVISIONAL]
+41 c4 28 40 DHW-only value (u16: 0 or 3840); equals C4 28 29 [6004 OBSERVED; PROVISIONAL]
+41 c6 03 9b Cumulative compressor-start counter (u16); confirmed increments on CH/DHW starts and not on defrost [6008 OBSERVED]
+41 c4 4d 25 Exponential average outdoor temperature (u16 / 10); time constant approximately 8 hours and quarterly update [6008 OBSERVED]
+41 c4 35 f7 Outside-temperature mirror (signed BE u16 / 10); tracks C6 66 01 including parameter-74 correction [6008 OBSERVED]
+41 c4 17 2a Disconnected-sensor candidate (approximately -35 to -39 deg C) [6008 OBSERVED; PROVISIONAL]
+41 c4 03 57 Disconnected-sensor candidate (approximately -35 to -39 deg C) [6008 OBSERVED; PROVISIONAL]
+41 c4 35 08 Disconnected-sensor candidate (approximately -35 to -39 deg C) [6008 OBSERVED; PROVISIONAL]
 
+# DHW modes and 6008 confirmed parameters
+41 c5 00 00 DHW comfort-setting candidate (high byte u16 = 55); displayed comfort window remains unconfirmed by setting modification [6008 OBSERVED; PROVISIONAL]
+41 c5 13 30 DHW eco-setting candidate (high byte u16 = 40); displayed eco window remains unconfirmed by setting modification [6008 OBSERVED; PROVISIONAL]
+41 c1 74 ec Active DHW setting (comfort 55 / eco 40); read 55 in comfort window and 40 in eco window [6008 TESTED]
+41 c3 74 49 DHW boost active (parameter 95; u16: 0 off, 255/0xFF on); display confirmed activation and automatic stop [6008 TESTED]
+41 c3 3f 64 Emergency mode active (parameter 97; u16: 0 off, 65535/0xFFFF on) [6008 TESTED]
+41 c4 50 ae Fixed 57.0 deg C DHW comfort supply-target candidate (s16 / 10); constant 570 [6008 OBSERVED; PROVISIONAL]
 
-# 87 byte-window with an independently confirmed room-setpoint interpretation
-41 87 82 47 Separate requested-room-temperature readback (BE u16 / 10); read returns 200->210->200 during confirmed 20->21->20 A-B-A trial [6008 TESTED]; may be a memory alias; 0x42 write remains the only previously verified write
+# 87 persistent/RAM parameter window
+41 87 82 47 Room-setpoint persistent/RAM alias (BE u16 / 10); confirmed 20.0 -> 20.5 -> 20.0 writes in a later 6008 test [6008 TESTED]
+41 87 f3 d6 Room-setpoint RAM copy (u16 little-endian x 0.1 deg C); RAM mapping relates to persistent address 87 8247 [6008 TESTED]
+41 87 81 7a DHW comfort-temperature persistent-table value (u8); high byte of word 87 8179: 55 -> 54 observed [6008 TESTED]
+41 87 82 64 DHW eco-temperature persistent-table value (u8); address 87 8263: eco 40 -> 39, then 39 -> 40 confirmed [6008 TESTED]
+41 87 82 5c Persistent copy of parameter 31 shift (u16 LE on parameter table); corresponds to RAM 07 F3 EB [6008 TESTED]
+41 87 82 5b Persistent copy of parameter 30 slope (u16 LE on parameter table); corresponds to RAM 07 F3 EA [6008 TESTED]
+41 87 82 65 Persistent copy of parameter 33 room-sensor influence [6008 TESTED]
+41 87 81 bb Persistent copy of parameter 70 pump speed [6008 TESTED]
+41 87 81 bc Additional persistent copy of parameter 70 pump speed [6008 TESTED]
+41 87 81 bf Additional persistent copy of parameter 70 pump speed [6008 TESTED]
+41 87 81 c0 Additional persistent copy of parameter 70 pump speed [6008 TESTED]
+41 87 82 6b Persistent copy of parameter 72 (candidate) [6008 OBSERVED; PROVISIONAL]
 
-# Known legacy write code (DO NOT use in read-only scans)
-42 87 82 47 xx xx Update Setpoint Room (u16) (example: 20.5 deg C encoded as 0x00CD); existing documented command; no newly inferred write mappings
+# Known 42 write commands (DO NOT use in read-only scans)
+42 87 82 47 xx xx Room-setpoint write (u16 little-endian display setting x 10, example 20.5 deg C = 0x00CD); existing documented command [6008 TESTED]
+42 87 82 5b xx xx Parameter 30 slope write (u16 LE, display 0.6 verified with 42 87 82 5B FF 06 -> display 0.6) [6008 TESTED]
+42 87 82 5c xx xx Parameter 31 shift persistent-table write (u16 LE); write mapping confirmed by RAM/persistent relationship, not by a direct display A-B-A write [6008 OBSERVED]
+42 87 82 63 xx xx DHW eco-temperature write (confirmed u16 LE: 42 87 82 63 28 00 changed eco display 39 -> 40) [6008 TESTED]
+42 87 81 79 xx xx DHW comfort-temperature write (write the high-byte temperature and preserve the existing low byte; 55 -> 54 confirmed by dump, direct write address relationship confirmed) [6008 TESTED]
+42 87 82 65 xx xx Parameter 33 room-sensor influence persistent-table write (u16 LE); direct relationship inferred from RAM/persistent mapping [6008 OBSERVED]
+42 87 81 bb xx xx Parameter 70 pump-speed persistent-table write candidate; 81BC/81BF/81C0 are additional copies, no blind writes [6008 OBSERVED; PROVISIONAL]
